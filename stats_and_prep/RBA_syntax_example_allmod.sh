@@ -1,4 +1,5 @@
 #!/bin/bash
+## C. Vriend - Amsterdam UMC - Aug '24
 
 # slurm settings
 #SBATCH --job-name=RBA

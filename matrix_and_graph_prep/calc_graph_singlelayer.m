@@ -1,11 +1,14 @@
+%% C. Vriend - Amsterdam UMC - Jul '24
+%% calculate graph measures from dwi and fmri matrices
+
 
 clc
 clear
 %% source toolboxes
-addpath(genpath('/data/anw/anw-gold/NP/doorgeefluik/toolboxes/BCT'))
-addpath(genpath('/data/anw/anw-gold/NP/doorgeefluik/toolboxes/network_community'))
-addpath(genpath('/data/anw/anw-gold/NP/doorgeefluik/toolboxes/GenLouvain2.2'))
-addpath(genpath('/data/anw/anw-gold/NP/projects/data_chris/CORE/topological_filtering_networks'))
+addpath(genpath('/data/anw/anw-work/NP/doorgeefluik/toolboxes/BCT'))
+addpath(genpath('/data/anw/anw-work/NP/doorgeefluik/toolboxes/network_community'))
+addpath(genpath('/data/anw/anw-work/NP/doorgeefluik/toolboxes/GenLouvain2.2'))
+addpath(genpath('/data/anw/anw-work/NP/projects/data_chris/CORE/topological_filtering_networks'))
 
 % kruskal_algorithm for multilayer MST in topological_filtering_networks folder
 
@@ -29,7 +32,7 @@ for jj = 1:length(modality)
 
 
     %% input variables
-    headdir=strcat('/data/anw/anw-gold/NP/projects/data_chris/CORE',filesep,mod);
+    headdir=strcat('/data/anw/anw-work/NP/projects/data_chris/CORE',filesep,mod);
     session='ses-T1';
     condir=strcat(headdir,filesep,session,filesep,'graph');
     outputdir=condir;
@@ -49,7 +52,7 @@ for jj = 1:length(modality)
     % Gamma = 0.48 | N comm = 8.00 +/- 0.07
 
 
-    atlasparcels='/data/anw/anw-gold/NP/projects/data_chris/CORE/func/300P7N-to-network.legend';
+    atlasparcels='/data/anw/anw-work/NP/projects/data_chris/CORE/func/300P7N-to-network.legend';
     parcels=readtable(atlasparcels,'FileType','text');
 
     subnetworks=unique(parcels{:,3});

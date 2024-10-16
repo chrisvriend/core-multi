@@ -1,9 +1,10 @@
 
+%% C. Vriend - Amsterdam UMC - Aug '24
 
 clc
 clear
 
-%% source software
+%% source toolbox
 addpath(genpath('/data/anw/anw-work/NP/doorgeefluik/toolboxes/NBS1.2')) % https://sites.google.com/site/bctnet/network-based-statistic-toolbox
 
 

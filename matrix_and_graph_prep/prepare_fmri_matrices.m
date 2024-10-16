@@ -1,3 +1,6 @@
+%% C. Vriend - Amsterdam UMC - Jul '24
+%% construct functional matrices by cross-correlating timeseries saved as csv file
+%% apply OMST thresholding
 
 clc
 clear
