@@ -4,8 +4,10 @@
 """This is the main code used at the MULTINETLAB for multilayer network analyses.
    It uses a supra-adjacency matrix (generated in MATLAB) as input, and creates a 
    multilayer network object - similar to the ones in Networkx.
-   For privacy reasons, we provide a random MST file.
-"""
+
+   
+   
+   """
 
 __author__ = "Fernando Nobrega"
 __contact__ = "f.nobregasantos@amsterdamumc.nl"
@@ -48,22 +50,20 @@ from sklearn.preprocessing import MinMaxScaler
 
 ################################################################################################################################
 
-basedir='/data/anw/anw-gold/NP/projects/data_chris/CORE'
+basedir='/data/anw/anw-work/NP/projects/data_chris/CORE'
 clindir=os.path.join(basedir,'clin')
 #statsdir=os.path.join(basedir,'stats','MBA')
-session='ses-T1'
+session='ses-T0'
 
-
-#subjlist=os.path.join(basedir,'multi',session,('OCD_subjects_' + session + '_multilayer.txt'))
-subjlist=os.path.join(basedir,'multi',session,('subjects_' + 'ses-T1' + '_multilayer.txt'))
+subjlist=os.path.join(basedir,'multi',session,('subjects_' + session + '_multilayer.txt'))
 #subjlist=os.path.join(basedir,'multi',session,('HC_subjects_' + 'ses-T0' + '_multilayer.txt'))
 
 
 df_subj=pd.read_csv(subjlist,header=None,names=['subjID'])
-atlasparcels='/data/anw/anw-gold/NP/projects/data_chris/CORE/func/300P7N-to-network.legend'
+atlasparcels='/data/anw/anw-work/NP/projects/data_chris/CORE/func/300P7N-to-network.legend'
 df_parcels=pd.read_csv(atlasparcels,sep='\t',index_col=[0],header=None,names=[0,'region','network'])
 
-filename = os.path.join('/data/anw/anw-gold/NP/projects/data_chris/CORE/multi',session,'graph/CORE_multiplexes.mat')
+filename = os.path.join('/data/anw/anw-work/NP/projects/data_chris/CORE/multi',session,'graph/CORE_multiplexes.mat')
 outdir = os.path.join(basedir,'multi',session,'output')
 
 

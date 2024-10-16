@@ -2,16 +2,18 @@
 clc
 clear
 
-%% add toolboxes to path
-addpath(genpath('/data/anw/anw-gold/NP/doorgeefluik/toolboxes/BCT'))
-addpath(genpath('/data/anw/anw-gold/NP/projects/data_chris/CORE/topological_filtering_networks'))
+%% source toolboxes
+addpath(genpath('/data/anw/anw-work/NP/doorgeefluik/toolboxes/BCT')) % Brain Connectivity toolbox - https://sites.google.com/site/bctnet/
+addpath(genpath('/data/anw/anw-work/NP/doorgeefluik/toolboxes/network_community')) % Network Community toolbox - https://commdetect.weebly.com/
+addpath(genpath('/data/anw/anw-work/NP/doorgeefluik/toolboxes/GenLouvain2.2')) % https://github.com/GenLouvain/GenLouvain
+addpath(genpath('/data/anw/anw-work/NP/projects/data_chris/CORE/topological_filtering_networks')) % https://github.com/stdimitr/topological_filtering_networks
+
 
 
 %% input variables
 %% input variables
-headdir='/data/anw/anw-gold/NP/projects/data_chris/CORE/func';
+headdir='/data/anw/anw-work/NP/projects/data_chris/CORE/func';
 session='ses-T1';
-%headdir='/s4ever/anwG/NP/yvdwerf/data_MOTAR/analysis'
 timedir=strcat(headdir,filesep,session);
 atlas='300P7N';
 
@@ -62,24 +64,8 @@ for a=1:length(files)
 
         % normalize
         pmatrix_temp=weight_conversion(temp,'autofix'); % autofix to ensure that matrix is truly symmetrical,
-     %   pmatrix_temp=weight_conversion(pmatrix_temp,'normalize');
-
-        %         % find zero entries in matrix to add back after Z-transformation and
-        %         % rescaling
-        %         logic0=pmatrix_temp==0;
-        %         disp(strcat('there are ',' ', num2str(sum(sum(logic0))-Nnodes), ' off-diagonal zero entries in the matrix'))
-        %
-        %         Mu=mean(pmatrix_temp(~logic0));
-        %         Sig=std(pmatrix_temp(~logic0));
-        %
-        %         pmatrix_temp2=(pmatrix_temp - Mu) / Sig;
-        %         pmatrix_temp2(logic0)=0;
-        %
-        %         pmatrix_temp3=pmatrix_temp2 - min(pmatrix_temp2(:));
-        %
-        %         pears_matrix=pmatrix_temp3 ./ max(pmatrix_temp3(:));
-        %         pears_matrix(logic0)=0;
-
+        pmatrix_temp=weight_conversion(pmatrix_temp,'normalize');
+     
         W=abs(pmatrix_temp);
 
         [~, W_OMST,~]=threshold_omst_gce_wu(squeeze(W),1);
@@ -96,36 +82,8 @@ for a=1:length(files)
         save(strcat(outputdir,filesep,subj,'_acq-func','_atlas-',atlas,'_OMST.mat'),'W_OMST', '-v7.3')
         save(strcat(outputdir,filesep,subj,'_acq-func','_atlas-',atlas,'_OMST_MST.mat'),'W_OMST_MST', '-v7.3')
 
-        %% Partial Correlations
 
-%         C=cov(epoch);
-%         invC=inv(C);
-%         pCorr=zeros(size(C));
-% 
-% 
-%         % Step 4: Calculate partial correlations
-%         for i = 1:size(C,1)
-%             for j = 1:size(C,2)
-%                 if i ~= j
-%                     pCorr(i,j) = -invC(i,j) / sqrt(invC(i,i) * invC(j,j));
-%                 else
-%                     pCorr(i,j) = 1;  % Diagonal elements are 1 (correlation with itself)
-%                 end
-%             end
-%         end
-%         pCorr=real(pCorr);
-%         pCorr(logical(eye(size(pCorr)))) = 0;
-% 
-%         pCorr =.5*log((1+pCorr)./(1-pCorr)); % convert to Fisher z-scores
-%         %temp=abs(temp); % only take absolute into account (might also want to check for other ways, such as (prop) thresh)
-% 
-%         % normalize
-%         pmatrix_temp=weight_conversion(pCorr,'autofix'); % autofix to ensure that matrix is truly symmetrical,
-%         pmatrix_temp=weight_conversion(pmatrix_temp,'normalize');
-% 
-
-
-        clear temp pmatrix* epoch*
+        clear pmatrix* W* temp
 
     end
 

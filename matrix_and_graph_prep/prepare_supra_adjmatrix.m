@@ -1,18 +1,12 @@
-
+%% prepare supra-adjacency matrices
 
 clc
 clear
-% 
-% conda activate /scratch/anw/share-np/multilayer
-% conda activate python env with Spyder
-% 
-% Open Spyder > go to Tools > Preferences > Python Interpreter > Change the 'use the following Python interpreter' to your environment's one. 
-% /scratch/anw/share-np/multilayer/bin/python > Apply and close tools >Restart Kernel console in spyder
 
 
 
-session='ses-T1';
-basedir='/data/anw/anw-gold/NP/projects/data_chris/CORE';
+session='ses-T0';
+basedir='/data/anw/anw-work/NP/projects/data_chris/CORE';
 
 fmridir=strcat(basedir,filesep,'func',filesep,session,filesep,'graph');
 dmridir=strcat(basedir,filesep,'dwi',filesep,session,filesep,'graph');

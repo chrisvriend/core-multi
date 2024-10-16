@@ -3,16 +3,19 @@ clc
 clear
 
 %% source toolboxes
-addpath(genpath('/data/anw/anw-gold/NP/doorgeefluik/toolboxes/BCT'))
-addpath(genpath('/data/anw/anw-gold/NP/doorgeefluik/toolboxes/network_community'))
-addpath(genpath('/data/anw/anw-gold/NP/doorgeefluik/toolboxes/GenLouvain2.2'))
-addpath(genpath('/data/anw/anw-gold/NP/projects/data_chris/CORE/topological_filtering_networks'))
+addpath(genpath('/data/anw/anw-work/NP/doorgeefluik/toolboxes/BCT')) % Brain Connectivity toolbox - https://sites.google.com/site/bctnet/
+addpath(genpath('/data/anw/anw-work/NP/doorgeefluik/toolboxes/network_community')) % Network Community toolbox - https://commdetect.weebly.com/
+addpath(genpath('/data/anw/anw-work/NP/doorgeefluik/toolboxes/GenLouvain2.2')) % https://github.com/GenLouvain/GenLouvain
+addpath(genpath('/data/anw/anw-work/NP/projects/data_chris/CORE/topological_filtering_networks')) % https://github.com/stdimitr/topological_filtering_networks
+
+
+
 
 % kruskal_algorithm for multilayer MST in topological_filtering_networks folder
 
 %% input variables
-headdir='/data/anw/anw-gold/NP/projects/data_chris/CORE/dwi';
-session='ses-T1';
+headdir='/data/anw/anw-work/NP/projects/data_chris/CORE/dwi';
+session='ses-T0';
 condir=strcat(headdir,filesep,session);
 outputdir=strcat(condir,filesep,'graph');
 mkdir(outputdir)
@@ -25,7 +28,7 @@ G = 1.00;                   % Gamma variable for community detection
 n_try = 5;
 n_iter = 100;
 
-atlasparcels='/data/anw/anw-gold/NP/projects/data_chris/CORE/func/300P7N-to-network.legend';
+atlasparcels='/data/anw/anw-work/NP/projects/data_chris/CORE/func/300P7N-to-network.legend';
 parcels=readtable(atlasparcels,'FileType','text');
 
 subnetworks=unique(parcels{:,3});
