@@ -1,5 +1,8 @@
 ## C. Vriend - Amsterdam UMC - July '24
-## perform multivariate mixed model analysis on CORE data
+## perform regression / mixed model analysis on pre-treatment CORE data and compare between cases and controls
+## use MatchIT to select healthy controls from a larger pool that are age and sex matched with the cases
+## additional sensitivity analyses with trial/treatment as covariate
+## Leave-one-sample-out validation (trial or treatment) and calculation of harmonic P-value across folds.
 
 
 # clear variables
@@ -51,17 +54,6 @@ clean_dataframe <- function(df) {
   df$BSE_adj <- sprintf("%2.3f [%2.3f]", df$B.1, df$SE.1)
   
   df <- select(df, -c(B.1, B, SE, SE.1))
-  
-  # calculate FDR correction ##
-  
-  #df['Pfdr_crude']<-p.adjust(df[['P-value']], method = "BH")
-  #df['Pfdr_adj']<-p.adjust(df[['P-value.1']], method = "BH")
-  
-  # round to 3 decs
-  #df[c('Pfdr_crude','Pfdr_adj')] <- sapply(df[c('Pfdr_crude','Pfdr_adj')],round,3)
-  
-  #df$Pvalues_crude <- sprintf("%2.3f (%2.3f)", df$Pfdr_crude, df[['P-value']])
-  #df$Pvalues_adj <- sprintf("%2.3f (%2.3f)", df$Pfdr_adj, df[['P-value.1']])
   df$Pvalues_crude <- sprintf("%2.3f", df[['P-value']])
   df$Pvalues_adj <- sprintf("%2.3f", df[['P-value.1']])
   # remove cols
@@ -83,6 +75,7 @@ dptvars <- c('Dx')
 
 
 for (acq in c('multi', 'func', 'dwi')) {
+
   print(acq)
   if (acq == 'multi') {
     
@@ -159,12 +152,7 @@ for (acq in c('multi', 'func', 'dwi')) {
   # merge clinical and connectome df 
   dfwide <- merge(dfwide, dfclin, by = 'subjID')
   dfwideHC <- merge(dfwideHC, dfclinHC, by = 'subjID')
-  
-  
-  # additional exclusions >65 year
-  #dfwideHC <-dfwideHC %>% filter(age<=65)
-  
-  
+    
   # select columns
   dfwide <- select(
     dfwide,
@@ -207,8 +195,7 @@ for (acq in c('multi', 'func', 'dwi')) {
   # Get the matched data
   matched_data <- match.data(match_it)
   
-  # Split the matched data back into patients and controls
-  #matched_patients <- matched_data[matched_data$Dx == 'pat', ]
+  # Split the matched data back
   matched_controls <- matched_data[matched_data$Dx == 'HC', ]
   
   matched_controls['Dx'] = 'HC'
@@ -245,82 +232,7 @@ for (acq in c('multi', 'func', 'dwi')) {
     
   }
   
-  
-  
-  
-  ##################
-  ### create plot ##
-  ##################
-  
-  
-  
-  dfwide4plot<-merge(dfwide, dfclin[, c('subjID','perc_improv','responder')], by = 'subjID',all.x=TRUE)
-  dfwide4plot$responder <- factor(dfwide4plot$responder, levels = c(0, 1), labels = c("non-resp", "resp"))
-  
-    for (i in 1:length(graphmeasures)) {
-      graph = graphmeasures[i]
-  
-      yintercept_min <- 0.95 * min(dfwide4plot[[graph]], na.rm = TRUE)
-      yintercept_max <- 1.05 * max(dfwide4plot[[graph]], na.rm = TRUE)
-  # Create the scatterplot and boxplot
-  ggplot() +
-    # Scatterplot for Group A (filtering out NA values for X)
-    geom_point(data = filter(dfwide4plot, Dx == "pat"), aes(x = perc_improv, y = !!sym(graph), color = responder), alpha = 0.7) +
-    geom_smooth(data = filter(dfwide4plot, Dx == "pat"), aes(x = perc_improv, y = !!sym(graph)), method = "lm", color = "black", linetype = "dashed") +
-    
-    # Raincloud plot for Group B (positioned at a fixed x position)
-    geom_violin(data = filter(dfwide4plot, Dx == "HC"), aes(x = -1.5, y = !!sym(graph)), 
-                     width = 0.3, fill = "orange", alpha = 0.5) +
-    geom_jitter(data = filter(dfwide4plot, Dx == "HC"), aes(x = -1.5, y = !!sym(graph)), 
-                width = 0.05, alpha = 0.5) +
-    stat_summary(data = filter(dfwide4plot, Dx == "HC"), aes(x = -1.5, y = !!sym(graph)), 
-                 fun = mean, geom = "point", shape = 95, size = 6, color = "black") +
-        # Boxplot for Group B (position it at a fixed x position)
-    geom_boxplot(data = filter(dfwide4plot, Dx == "HC"), aes(x = -1.5, y = !!sym(graph)), width = 0.2, fill = "orange4", color = "black", alpha = 0.5) +
-    
-    
-    # Raincloud plot for Group B (positioned at a fixed x position)
-    geom_violin(data = filter(dfwide4plot, Dx == "pat"), aes(x = -1, y = !!sym(graph)), 
-                width = 0.3, fill = "green", alpha = 0.5) +
-    geom_jitter(data = filter(dfwide4plot, Dx == "pat"), aes(x = -1, y = !!sym(graph)), 
-                width = 0.05, alpha = 0.5) +
-    stat_summary(data = filter(dfwide4plot, Dx == "pat"), aes(x = -1, y = !!sym(graph)), 
-                 fun = mean, geom = "point", shape = 95, size = 6, color = "black") +
-    # Boxplot for Group B (position it at a fixed x position)
-    geom_boxplot(data = filter(dfwide4plot, Dx == "pat"), aes(x = -1, y = !!sym(graph)), width = 0.2, fill = "green4", color = "black", alpha = 0.5) +
-    
-    
-   # geom_hline(yintercept = yintercept_min, linetype = "dotted", color = "grey") +
-  #  annotate("text", x = 2, y = yintercept_min, label = "Break", color = "grey", size = 4, angle = 0) +
-    
-    
-   # geom_segment(aes(x = -2, xend = -1.8, y = yintercept_min, yend = yintercept_min), 
-   #              linetype = "solid", color = "black", size = 0.5) +  
-    # Adjust size as needed
-    geom_vline(xintercept = -0.75, linetype = "solid", color ="black", size = 0.5) +
-    # Add 0 where the x and y axes intersect (doesn't work)
-    #annotate("text", x = 0, y = 0, label = "0", color = "black", size = 4, vjust = 1, hjust = 1)
-
-    # Adjust the x-axis limits to make room for the boxplot and the scatterplot
-    
-    scale_x_continuous(limits = c(-1.75, 1.5), 
-                       breaks = c(-1.5, -1, -0.5, 0, 0.5, 1), 
-                       labels = c("healthy controls", "patients", "-0.5", "0", "0.5", "1")) +
-  #  theme(axis.text.x = element_text(angle = 45,hjust =1)) +
-    #scale_x_continuous(limits = c(-2, 2), breaks = c(seq(-1.5, 1, by = 0.5), -1.5, 1.5), labels = c(seq(-1.5, 1, by = 0.5), "healthy controls","patients")) +
-    # Set the y-axis limits to 0 to 1
-    scale_y_continuous(limits = c(yintercept_min, yintercept_max)) +
-    
-    # Labels and theme adjustments
-    labs(x = "% improvement", y = graph) +
-    theme_classic() +
-    theme(axis.title.x = element_text(size = 12),
-          axis.title.y = element_text(size = 10))
-  ggsave(file.path(basedir,"stats",paste0('plot_',acq,'_',graph,'_Dx-vs-percimprov.pdf')),width=8,height=6)
-  
-
-    }
-  ##################
+    ##################
   ### run models ###
   ##################
   
@@ -361,9 +273,8 @@ for (acq in c('multi', 'func', 'dwi')) {
       ))
     )
     
-    
-    
-    
+       
+
     for (i in 1:length(graphmeasures)) {
       graph = graphmeasures[i]
       
@@ -392,7 +303,6 @@ for (acq in c('multi', 'func', 'dwi')) {
       model_graph_adj_treat <- lmer(formula = as.formula(
         paste(graph, "~ ", covinterest, " + age + seks + (1|treatment)")
       ), data = dfwide)
-      
       
       
       # extract stat parameters
@@ -592,7 +502,6 @@ for (acq in c('multi', 'func', 'dwi')) {
   }
   
   
-  
   # Function to compute the Harmonic Mean P-value
   harmonic_mean_pvalue <- function(p_values) {
     # Ensure p-values are between 0 and 1
@@ -762,12 +671,7 @@ for (acq in c('multi', 'func', 'dwi')) {
   
   df_LOSO_trial_Dx <- results_list$df_1_trial
   df_LOSO_trt_Dx <- results_list$df_1_treatment
-  
-  
-  
-  
-  
-  
+
   
   write.list2 <- list("Dx_trial" = df_LOSO_trial_Dx, "Dx_treatment" = df_LOSO_trt_Dx)
   

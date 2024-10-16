@@ -1,4 +1,6 @@
+%% C. Vriend - Amsterdam UMC - Jul '24
 %% prepare supra-adjacency matrices
+
 
 clc
 clear

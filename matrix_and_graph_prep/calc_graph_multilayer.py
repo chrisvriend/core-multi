@@ -5,7 +5,8 @@
    It uses a supra-adjacency matrix (generated in MATLAB) as input, and creates a 
    multilayer network object - similar to the ones in Networkx.
 
-   
+   see for instructions:
+   https://github.com/multinetlab-amsterdam/data_analysis/tree/Multilayer/Multilayer
    
    """
 
@@ -21,6 +22,7 @@ __status__ = "Production"
 
 # Reviewed by Eduarda Centeno 20200909
 # Reviewed by Lucas Breedt 20201125
+# Modified by Chris Vriend 20240714
 
 
 ####################

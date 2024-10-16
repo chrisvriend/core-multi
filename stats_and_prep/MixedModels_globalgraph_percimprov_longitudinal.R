@@ -1,6 +1,6 @@
 ## C. Vriend - Amsterdam UMC - July '24
-## perform multivariate mixed model analysis on CORE data
-
+## perform regression analysis on pre-to-post-treatment CORE data and associate with percentage improvement
+## Leave-one-sample-out validation (trial or treatment) and calculation of harmonic P-value across folds.
 
 # clear variables
 rm(list=ls())
@@ -14,7 +14,6 @@ library(lme4)
 library(readxl)
 library(lmerTest)# to get p-value estimations that are not part of the standard lme4 packages
 library(tidyr)
-library(rmcorr)
 
 
 
@@ -33,17 +32,6 @@ clean_dataframe <- function(df) {
   df$BSE_adj <- sprintf("%2.3f [%2.3f]", df$B.1, df$SE.1)
   
   df<-select(df, -c(B.1, B, SE,SE.1))
-  
-  # calculate FDR correction ##
-  
-  #df['Pfdr_crude']<-p.adjust(df[['P-value']], method = "BH")
-  #df['Pfdr_adj']<-p.adjust(df[['P-value.1']], method = "BH")
-  
-  # round to 3 decs
-  #df[c('Pfdr_crude','Pfdr_adj')] <- sapply(df[c('Pfdr_crude','Pfdr_adj')],round,3)
-  
-  #df$Pvalues_crude <- sprintf("%2.3f (%2.3f)", df$Pfdr_crude, df[['P-value']])
-  #df$Pvalues_adj <- sprintf("%2.3f (%2.3f)", df$Pfdr_adj, df[['P-value.1']])
   df$Pvalues_crude <- sprintf("%2.3f", df[['P-value']])
   df$Pvalues_adj <- sprintf("%2.3f", df[['P-value.1']])
   # remove cols
@@ -83,13 +71,6 @@ dfclin<-select(dfclin, -c(T1MRI))
 # convert characters to factors
 dflong[sapply(dflong, is.character)] <- lapply(dflong[sapply(dflong, is.character)], 
                                        as.factor)
-
-
-
-# additional exclusions? 
-#dflong <-dflong %>% filter(subjID!='sub-2261' | subjID!='sub-2274' | subjID!='sub-3117' | subjID!='sub-4177')
-
-
 dflong<-merge(dflong,dfclin, by='Subj')
 
 
@@ -107,9 +88,6 @@ dflong <- dflong %>%
     session == "T0" ~ baseline_sev,
     session == "T1" ~ posttrial_sev
   ))
-
-
-
 
 dflong <- dflong %>%
   group_by( Subj) %>%
@@ -143,27 +121,6 @@ if (acq =='dwi'){
   
 }
 
-
-# 
-# 
-# # 
-# ## originally promised model ##
-# ecc.T0<- dflong %>% group_by(Subj) %>% summarize(T0val = first(eccentricity))
-# ecc.T1<- dflong %>% group_by(Subj) %>% summarize(T1val = last(eccentricity))
-# dflong<-merge(dflong,ecc.T0,by ="Subj")
-# dflong<-merge(dflong,ecc.T1,by ="Subj")
-# 
-# dfwide<-dflong[dflong$session == 'T0',]
-# model_graph_crude<-lmer(formula = as.formula(paste("T1val","~ perc_improv", "+ T0val + (1| Subj)")),data=dfwide)
-# model_graph_crude<-lm(formula = as.formula(paste("T1val","~ perc_improv", "+ T0val")),data=dfwide)
-
-# 
-# 
-# ## rmcorr 
-# stats.rmcorr<-rmcorr(factor(Subj),clinsev,eccentricity,dflong,CIs = c("analytic", "bootstrap"),nreps = 5000,bstrap.out = F)
-# plot(stats.rmcorr, overall = TRUE)
-
-
 dptvars<-c('zclinsev_centered')
 
 # List to store resulting dataframes
@@ -192,10 +149,7 @@ for (i in 1:length(graphmeasures)) {
   graph=graphmeasures[i]
   
   print(paste("global graph measure = ", graph))
-  
-  
-  
-  
+   
   df <- dflong %>%
     group_by(Subj) %>%
     mutate(
@@ -208,15 +162,15 @@ for (i in 1:length(graphmeasures)) {
 
     )
   
-  
   model_graph_crude<-lm(formula = as.formula(paste("zgraph_centered ~", covinterest, "+ as.factor(Subj)")),data=df)
   model_graph_adj<-lm(formula = as.formula(paste("zgraph_centered ~", covinterest, "+ age + seks + as.factor(Subj)")),data=df)
   
-  model_graph_crude_trial<-lm(formula = as.formula(paste("zgraph_centered ~", covinterest, "+ as.factor(Subj) + trial")),data=df)
-  model_graph_crude_treat<-lm(formula = as.formula(paste("zgraph_centered ~", covinterest, "+ as.factor(Subj) + treatment")),data=df)
+  # exact same outcome due to subj as fixed effect
+  #model_graph_crude_trial<-lm(formula = as.formula(paste("zgraph_centered ~", covinterest, "+ as.factor(Subj) + trial")),data=df)
+  #model_graph_crude_treat<-lm(formula = as.formula(paste("zgraph_centered ~", covinterest, "+ as.factor(Subj) + treatment")),data=df)
   
-  model_graph_adj_trial<-lm(formula = as.formula(paste("zgraph_centered ~", covinterest, "+ as.factor(Subj) + age + seks + trial")),data=df)
-  model_graph_adj_treat<-lm(formula = as.formula(paste("zgraph_centered ~", covinterest, "+ as.factor(Subj) + age + seks + treatment")),data=df)
+  #model_graph_adj_trial<-lm(formula = as.formula(paste("zgraph_centered ~", covinterest, "+ as.factor(Subj) + age + seks + trial")),data=df)
+  #model_graph_adj_treat<-lm(formula = as.formula(paste("zgraph_centered ~", covinterest, "+ as.factor(Subj) + age + seks + treatment")),data=df)
   
   
   # standard models
@@ -229,39 +183,39 @@ for (i in 1:length(graphmeasures)) {
                            confint(model_graph_adj)[rows_adj, ,drop=FALSE])
 
   #  -trial models  
-    rows_crude <- grep(paste0("^",covinterest), rownames(summary(model_graph_crude_trial)$coefficients), value = TRUE)
-    rows_adj <- grep(paste0("^",covinterest), rownames(summary(model_graph_adj_trial)$coefficients), value = TRUE)
+ #   rows_crude <- grep(paste0("^",covinterest), rownames(summary(model_graph_crude_trial)$coefficients), value = TRUE)
+ #   rows_adj <- grep(paste0("^",covinterest), rownames(summary(model_graph_adj_trial)$coefficients), value = TRUE)
     
-    coeff_graph_crude_trial<-cbind(summary(model_graph_crude_trial)$coefficients[rows_crude,c(1,2,4),drop=FALSE],
-                             confint(model_graph_crude_trial)[rows_crude, ,drop=FALSE])
+ #   coeff_graph_crude_trial<-cbind(summary(model_graph_crude_trial)$coefficients[rows_crude,c(1,2,4),drop=FALSE],
+  #                           confint(model_graph_crude_trial)[rows_crude, ,drop=FALSE])
    
-    coeff_graph_adj_trial<-cbind(summary(model_graph_adj_trial)$coefficients[rows_crude,c(1,2,4),drop=FALSE],
-                             confint(model_graph_adj_trial)[rows_crude, ,drop=FALSE])
+  #  coeff_graph_adj_trial<-cbind(summary(model_graph_adj_trial)$coefficients[rows_crude,c(1,2,4),drop=FALSE],
+  #                           confint(model_graph_adj_trial)[rows_crude, ,drop=FALSE])
     
     # -treatment models  
-    rows_crude <- grep(paste0("^",covinterest), rownames(summary(model_graph_crude_treat)$coefficients), value = TRUE)
+ #   rows_crude <- grep(paste0("^",covinterest), rownames(summary(model_graph_crude_treat)$coefficients), value = TRUE)
 
-    coeff_graph_crude_treat<-cbind(summary(model_graph_crude_treat)$coefficients[rows_crude,c(1,2,4),drop=FALSE],
-                                   confint(model_graph_crude_treat)[rows_crude, ,drop=FALSE])
-    coeff_graph_adj_treat<-cbind(summary(model_graph_adj_treat)$coefficients[rows_crude,c(1,2,4),drop=FALSE],
-                             confint(model_graph_adj_treat)[rows_crude, ,drop=FALSE])
+  #  coeff_graph_crude_treat<-cbind(summary(model_graph_crude_treat)$coefficients[rows_crude,c(1,2,4),drop=FALSE],
+  #                                 confint(model_graph_crude_treat)[rows_crude, ,drop=FALSE])
+  #  coeff_graph_adj_treat<-cbind(summary(model_graph_adj_treat)$coefficients[rows_crude,c(1,2,4),drop=FALSE],
+   #                          confint(model_graph_adj_treat)[rows_crude, ,drop=FALSE])
     
     
  # round to 3 decimals
  coeff_graph_crude<-sapply(coeff_graph_crude,round,3)
  coeff_graph_adj<-sapply(coeff_graph_adj,round,3)
- coeff_graph_crude_trial<-sapply(coeff_graph_crude_trial,round,3)
- coeff_graph_crude_treat<-sapply(coeff_graph_crude_treat,round,3)
- coeff_graph_adj_trial<-sapply(coeff_graph_adj_trial,round,3)
- coeff_graph_adj_treat<-sapply(coeff_graph_adj_treat,round,3)
+ #coeff_graph_crude_trial<-sapply(coeff_graph_crude_trial,round,3)
+ #coeff_graph_crude_treat<-sapply(coeff_graph_crude_treat,round,3)
+ #coeff_graph_adj_trial<-sapply(coeff_graph_adj_trial,round,3)
+ #coeff_graph_adj_treat<-sapply(coeff_graph_adj_treat,round,3)
 
  temps_graph_coeff[i,1:5]=coeff_graph_crude
  temps_graph_coeff[i,6:10]=coeff_graph_adj
  
- temps_graph_coeff_trial[i,1:5]=coeff_graph_crude_trial
- temps_graph_coeff_trial[i,6:10]=coeff_graph_adj_trial
- temps_graph_coeff_treat[i,1:5]=coeff_graph_crude_treat
- temps_graph_coeff_treat[i,6:10]=coeff_graph_adj_treat
+ #temps_graph_coeff_trial[i,1:5]=coeff_graph_crude_trial
+ #temps_graph_coeff_trial[i,6:10]=coeff_graph_adj_trial
+ #temps_graph_coeff_treat[i,1:5]=coeff_graph_crude_treat
+ #temps_graph_coeff_treat[i,6:10]=coeff_graph_adj_treat
  
 
  rm(coeff_graph_crude,coeff_graph_crude_trial,coeff_graph_crude_treat,
@@ -270,28 +224,28 @@ for (i in 1:length(graphmeasures)) {
 }
 
 all_coeff<-as.data.frame(temps_graph_coeff)
-all_coeff_trial<-as.data.frame(temps_graph_coeff_trial)
-all_coeff_treat<-as.data.frame(temps_graph_coeff_treat)
+#all_coeff_trial<-as.data.frame(temps_graph_coeff_trial)
+#all_coeff_treat<-as.data.frame(temps_graph_coeff_treat)
 names(all_coeff) <- make.unique(names(all_coeff))
-names(all_coeff_trial) <- make.unique(names(all_coeff_trial))
-names(all_coeff_treat) <- make.unique(names(all_coeff_treat))
+#names(all_coeff_trial) <- make.unique(names(all_coeff_trial))
+#names(all_coeff_treat) <- make.unique(names(all_coeff_treat))
 
 df_globalall <- tibble::rownames_to_column(all_coeff, "globalmeasure")
-df_globalall_trial <- tibble::rownames_to_column(all_coeff_trial, "globalmeasure")
-df_globalall_treat <- tibble::rownames_to_column(all_coeff_treat, "globalmeasure")
+#df_globalall_trial <- tibble::rownames_to_column(all_coeff_trial, "globalmeasure")
+#df_globalall_treat <- tibble::rownames_to_column(all_coeff_treat, "globalmeasure")
 
 
 results_list[[paste0("df_", j)]] <- clean_dataframe(df_globalall)
-results_list_trial[[paste0("df_", j)]] <-clean_dataframe(df_globalall_trial)
-results_list_treat[[paste0("df_", j)]] <-clean_dataframe(df_globalall_treat)
+#esults_list_trial[[paste0("df_", j)]] <-clean_dataframe(df_globalall_trial)
+#results_list_treat[[paste0("df_", j)]] <-clean_dataframe(df_globalall_treat)
 
 
 }
 
 # Rename and save the dataframes outside the for loop
 df_percchange <- results_list$df_1
-df_percchange_trial <- results_list_trial$df_1
-df_percchange_treat <- results_list_treat$df_1
+#df_percchange_trial <- results_list_trial$df_1
+#df_percchange_treat <- results_list_treat$df_1
 
 
 ### save output ###
@@ -401,18 +355,6 @@ for (LOSO in c('trial', 'treatment')) {
 
     # pre-allocation
 
-    # mse_mat <- matrix(
-    #   0,
-    #   nrow = length(graphmeasures),
-    #   ncol = 1,
-    #   dimnames = list(graphmeasures, c("MSE"))
-    # )
-    # rrmse_mat <- matrix(
-    #   0,
-    #   nrow = length(graphmeasures),
-    #   ncol = 1,
-    #   dimnames = list(graphmeasures, c("RRMSE"))
-    # )
     pvalues_mat <- matrix(
       0,
       nrow = length(graphmeasures),
@@ -464,14 +406,8 @@ for (LOSO in c('trial', 'treatment')) {
                 zclinsev_centered = scale(clinsev_centered, center = TRUE, scale = TRUE)[,1]
               ) %>%
               ungroup()
+           
             
-            
-            
-            
-            
-            
-      predictions <- c()
-      actuals <- c()
       pvalues <- c()
       samplesize <- c()
       for (trial_id in trials) {
@@ -502,11 +438,7 @@ for (LOSO in c('trial', 'treatment')) {
                                                                              FALSE]))
         samplesize <- c(samplesize, as.numeric(length(training_data)))
 
-     #   preds <- predict(model_graph, newdata = df_test)
-    #    predictions <- c(predictions, preds)
-    #    actuals <- c(actuals, df_test[[graph]])
-
-
+   
       }
       # save pvalue range
       # Calculate Fisher's combined test statistic
@@ -544,15 +476,8 @@ for (LOSO in c('trial', 'treatment')) {
         harmonic_pvalue
       )
 
-   #   mse_mat[i] <- mean((predictions - actuals) ^ 2)
-  #    rrmse_mat[i] <- sqrt(mean((predictions - actuals) ^ 2)) / mean(actuals)
-
-
-   #   r_squared <- 1 - (sum((actuals - predictions) ^ 2) / sum((actuals -
-  #                                                                mean(actuals)) ^ 2))
-
+ 
     }
-    #results_list[[paste0("df_", j, '_', LOSO)]] <- cbind(graphmeasures,sapply(as.data.frame(cbind(pvalues_mat, rrmse_mat)), round, 3))
     results_list[[paste0("df_", j, '_', LOSO)]] <- cbind(graphmeasures,sapply(as.data.frame(cbind(pvalues_mat)), round, 3))
 
         rm(pvalues_mat)

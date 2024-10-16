@@ -1,4 +1,5 @@
-
+## C. Vriend - Amsterdam UMC - Aug '24
+## Post-hoc Bayesian regression analyses of global graph measures using brms package
 
 # clear variables
 rm(list = ls())
@@ -16,7 +17,6 @@ library(ggplot2)
 
 
 # input variables
-
 date <- Sys.Date()
 basedir = '/data/anw/anw-work/NP/projects/data_chris/CORE'
 session = 'ses-T0'
@@ -47,8 +47,6 @@ for (acq in c('multi', 'dwi', 'func')) {
   dfwide[sapply(dfwide, is.character)] <- lapply(dfwide[sapply(dfwide, is.character)], as.factor)
   
   
-  # additional exclusions?
-  #dfwide <-dfwide %>% filter(subjID!='sub-2261' | subjID!='sub-2274' | subjID!='sub-3117' | subjID!='sub-4177')
   
   dfclin <- dfclin %>%
     mutate(subjID = paste0(Subj, '_', session))
@@ -139,8 +137,6 @@ for (acq in c('multi', 'dwi', 'func')) {
       p_pos<-mean(posterior_interest> 0)
       pplus<-c(pplus,p_pos)
         
-     
-
       # plot posterior distribution
       plot_color <- ifelse(p_pos <= 0.05, "blue", ifelse(p_pos <= 0.1, "cyan", ifelse(p_pos <=0.15,"skyblue",ifelse(
         p_pos <= 0.85,'grey41',ifelse(p_pos<=0.9,"yellow4",
@@ -159,25 +155,9 @@ for (acq in c('multi', 'dwi', 'func')) {
         theme(axis.title.x = element_text(size = 12),
               axis.title.y = element_blank(),axis.ticks.y=element_blank(),axis.text.y=element_blank())
              
-
-
       ggsave(file.path(basedir,"stats","bayes_global",paste0('Ridgeplot_acq-',acq,'_',graph,'_',covinterest,'.pdf')),width=4,height=3)
-    #  ggsave(file.path(basedir,"stats","bayes_global",paste0('Ridgeplot_acq-',acq,'_',graph,'_',covinterest,'.png')),dpi=400)
       
     }
-    # 
-    # posteriors_comb<-as.data.frame(do.call(cbind,posteriors))
-    # names(posteriors_comb)<-graphmeasures
-    # posteriors_long<-posteriors_comb %>% pivot_longer(cols = c(as.character(graphmeasures)), names_to = "parameter",values_to ="value")
-    # 
-    # ggplot(posteriors_long,aes(x=value)) + geom_density(alpha=0.5,adjust =1.5) + 
-    #   geom_vline(
-    #         xintercept = 0,
-    #         linetype = "solid",
-    #         alpha = 1,
-    #         size = 1,
-    #         color = "red"
-    #       ) + theme_classic() + facet_wrap(~ parameter,ncol=-1,scales="free_y")
 
   }
   

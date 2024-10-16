@@ -3,15 +3,13 @@
 """
 Created on Fri Jul  5 12:15:07 2024
 
-Updated by: cvriend
+@author: C. Vriend, Amsterdam UMC July 2024
 """
 
+# load packages
 import os
 import pandas as pd
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-import statsmodels.api as sm
 
 # Base directory for data
 basedir = '/data/anw/anw-work/NP/projects/data_chris/CORE'
@@ -81,12 +79,3 @@ for acq in acq_types:
     # Save to file
     df_PC.to_csv(os.path.join(statsdir, f'RBA_PC_acq-{acq}_CORE_long.txt'), sep=' ')
     
-    # Temporary plot for 'LIM' network and improvement percentage
-    # LIM_eccentricity = df_PC[df_PC['network'] == f'LIM_{acq}']['Y']
-    # perc_improv = df_PC[df_PC['network'] == f'LIM_{acq}']['perc_improv']
-    # dfplot = pd.concat([LIM_eccentricity, perc_improv], axis=1)
-    # sns.regplot(x='perc_improv', y='Y', data=dfplot, scatter=True, color='black')
-    # plt.show()
-
-# Note: Ensure that both 'dwi' and 'func' data exist before running analysis
-

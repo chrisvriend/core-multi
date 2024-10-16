@@ -3,15 +3,12 @@
 """
 Created on Fri Jul  5 12:15:07 2024
 
-@author: cvriend
+@author: C. Vriend, Amsterdam UMC July 2024
 """
 
-
+# load packages
 import os 
 import pandas as pd
-#import seaborn as sns
-#import matplotlib.pyplot as plt
-#import statsmodels.api as sm
 import numpy as np
 
 
@@ -44,20 +41,7 @@ for acq in acq_list:
     df_long = pd.concat([df_T0, df_T1]).reset_index()
     # set T2 to T1
     df_long['session']=df_long['session'].replace({'T2': 'T1'}).astype('category')
-    
-    ## add clinical data
-    # df_long.set_index(['Subj'],inplace=True)
-    
-    # # load clinical data
-    # df_clin=pd.read_excel(os.path.join(clindir,'OCD_trials4analyses.xlsx'))
-    
-    # df_clin['trial']=df_clin['trial'].astype('category')
-    # df_clin['treatment']=df_clin['treatment'].astype('category')
-    # df_clin.set_index('Subj',inplace=True)
-    
-    # df_long=df_long.join(df_clin).reset_index()
-    
-    
+        
     df_long.set_index(['Subj','session'],inplace=True)
     df_long=df_long.round(6)
     df_long=df_long.sort_values(['Subj','session'])
@@ -88,19 +72,6 @@ df_T0 = df_T0.loc[df_T0.index.isin(df_T1.index)]
 df_long = pd.concat([df_T0, df_T1]).reset_index()
 # set T2 to T1
 df_long['session']=df_long['session'].replace({'T2': 'T1'}).astype('category')
-
-## add clinical data
-# df_long.set_index(['Subj'],inplace=True)
-
-# # load clinical data
-# df_clin=pd.read_excel(os.path.join(clindir,'OCD_trials4analyses.xlsx'))
-
-# df_clin['trial']=df_clin['trial'].astype('category')
-# df_clin['treatment']=df_clin['treatment'].astype('category')
-# df_clin.set_index('Subj',inplace=True)
-
-# df_long=df_long.join(df_clin).reset_index()
-
 
 df_long.set_index(['Subj','session'],inplace=True)
 df_long=df_long.round(6)

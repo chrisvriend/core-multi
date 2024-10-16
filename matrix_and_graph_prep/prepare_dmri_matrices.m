@@ -1,3 +1,6 @@
+%% C. Vriend - Amsterdam UMC - Jul '24
+%% construct dMRI matrices from MRTRIX3 derived connectivity matrices saved as csv file
+%% apply OMST thresholding
 
 clc 
 clear

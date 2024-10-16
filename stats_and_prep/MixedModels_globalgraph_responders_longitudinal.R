@@ -1,5 +1,7 @@
 ## C. Vriend - Amsterdam UMC - July '24
-## perform multivariate mixed model analysis on CORE data
+## perform mixed model analysis on pre-to-post treatment CORE data and compare between responders and non-responder
+## additional sensitivity analyses with trial/treatment as random intercept
+## Leave-one-sample-out validation (trial or treatment) and calculation of harmonic P-value across folds.
 
 
 # clear variables
@@ -12,11 +14,11 @@ library(moderndive)
 library(reshape2)
 library(lme4)
 library(readxl)
-library(lmerTest)# to get p-value estimations that are not part of the standard lme4 packages
+library(lmerTest) # to get p-value estimations that are not part of the standard lme4 packages
 library(tidyr)
 library(rmcorr)
 library(ggplot2)
-
+library(openxlsx)
 
 # Define the function to perform operations
 clean_dataframe <- function(df) {
@@ -33,23 +35,11 @@ clean_dataframe <- function(df) {
   df$BSE_adj <- sprintf("%2.3f [%2.3f]", df$B.1, df$SE.1)
   
   df<-select(df, -c(B.1, B, SE,SE.1))
-  
-  # calculate FDR correction ##
-  
-  #df['Pfdr_crude']<-p.adjust(df[['P-value']], method = "BH")
-  #df['Pfdr_adj']<-p.adjust(df[['P-value.1']], method = "BH")
-  
-  # round to 3 decs
-  #df[c('Pfdr_crude','Pfdr_adj')] <- sapply(df[c('Pfdr_crude','Pfdr_adj')],round,3)
-  
-  #df$Pvalues_crude <- sprintf("%2.3f (%2.3f)", df$Pfdr_crude, df[['P-value']])
-  #df$Pvalues_adj <- sprintf("%2.3f (%2.3f)", df$Pfdr_adj, df[['P-value.1']])
+ 
   df$Pvalues_crude <- sprintf("%2.3f", df[['P-value']])
   df$Pvalues_adj <- sprintf("%2.3f", df[['P-value.1']])
   # remove cols
   df<-select(df, -c('P-value','P-value.1'))
-  
-  
   df<-df %>% relocate("Pvalues_crude", .after = "BSE_crude") %>% 
     relocate("CI_crude", .before = "Pvalues_crude") %>% 
     relocate("Pvalues_adj", .after = "BSE_adj") %>% 
@@ -70,17 +60,6 @@ clean_dataframe_mod <- function(df) {
   df$BSE_crude <- sprintf("%2.3f [%2.3f]", df$B, df$SE)
 
   df<-select(df, -c(B, SE))
-  
-  # calculate FDR correction ##
-  
-  #df['Pfdr_crude']<-p.adjust(df[['P-value']], method = "BH")
-  #df['Pfdr_adj']<-p.adjust(df[['P-value.1']], method = "BH")
-  
-  # round to 3 decs
-  #df[c('Pfdr_crude','Pfdr_adj')] <- sapply(df[c('Pfdr_crude','Pfdr_adj')],round,3)
-  
-  #df$Pvalues_crude <- sprintf("%2.3f (%2.3f)", df$Pfdr_crude, df[['P-value']])
-  #df$Pvalues_adj <- sprintf("%2.3f (%2.3f)", df$Pfdr_adj, df[['P-value.1']])
   df$Pvalues_crude <- sprintf("%2.3f", df[['P-value']])
   # remove cols
   df<-select(df, -c('P-value'))
@@ -133,23 +112,16 @@ if (acq =='dwi'){
 dfwide <- dflong %>%
   pivot_wider(names_from = session, values_from=graphmeasures)
 
-
-# additional exclusions? 
-#dflong <-dflong %>% filter(subjID!='sub-2261' | subjID!='sub-2274' | subjID!='sub-3117' | subjID!='sub-4177')
-
-
 dfwide<-merge(dfwide,dfclin, by='Subj')
 dflong<-merge(dflong,dfclin, by='Subj')
 
 
 ## plot 
 
-ggplot(dflong,aes(x=responder,y=Sigma,fill=session)) + 
-  geom_bar(stat="identity",position="dodge")
-
-
-ggplot(dflong,aes(x=responder,y=eigenvector,fill=session)) + 
-  geom_bar(stat="identity",position="dodge")
+#ggplot(dflong,aes(x=responder,y=Sigma,fill=session)) + 
+#  geom_bar(stat="identity",position="dodge")
+#ggplot(dflong,aes(x=responder,y=eigenvector,fill=session)) + 
+#  geom_bar(stat="identity",position="dodge")
 
 
 
@@ -202,13 +174,7 @@ for (i in 1:length(graphmeasures)) {
   
   print(paste("global graph measure = ", graph))
   
-  model_ttest<-t.test(dfwide[[paste0(graph,"_T0")]],dfwide[[paste0(graph,"_T1")]],paired=TRUE,alternative="two.sided")
-  # model_graph_crude<-lm(formula = as.formula(paste0(graph,"_T1"," ~ responder + ",graph,"_T0")),data=dfwide)
-  # model_graph_adj<-lm(formula = as.formula(paste0(graph,"_T1"," ~ responder + ",graph,"_T0"," + age + seks")),data=dfwide)
-  # model_graph_trial<-lm(formula = as.formula(paste0(graph,"_T1"," ~ responder + ",graph,"_T0"," + age + seks + trial")),data=dfwide)
-  # model_graph_treat<-lm(formula = as.formula(paste0(graph,"_T1"," ~ responder + ",graph,"_T0"," + age + seks + treatment")),data=dfwide)
-  # 
-  
+  model_ttest<-t.test(dfwide[[paste0(graph,"_T0")]],dfwide[[paste0(graph,"_T1")]],paired=TRUE,alternative="two.sided") 
   model_graph_crude<-lmer(formula = as.formula(paste0(graph," ~ session * ", covinterest," + ",graph ,"_T0"," + (1|Subj)")),data=dflong)
   model_graph_adj<-lmer(formula = as.formula(paste0(graph," ~ session * ", covinterest," + ",graph ,"_T0"," + age + seks + (1|Subj)")),data=dflong)
   model_graph_trial<-lmer(formula = as.formula(paste0(graph," ~ session * ", covinterest," + ",graph ,"_T0"," + age + seks + trial + (1|Subj)")),data=dflong)
@@ -230,7 +196,6 @@ for (i in 1:length(graphmeasures)) {
    
   
  # round to 3 decimals
-     
  coeff_graph_crude<-sapply(coeff_graph_crude,round,3)
  coeff_graph_adj<-sapply(coeff_graph_adj,round,3)
  coeff_graph_trial<-sapply(coeff_graph_trial,round,3)
@@ -276,7 +241,6 @@ df_responder_treat <- results_list_treat$df_1
 
 
 ### save output ###
-library(openxlsx)
 
 
 write.list <- list("Paired t-test" = df_paired,
@@ -300,9 +264,6 @@ for (sheet_name in names(write.list)) {
            cols=1:n_cols,gridExpand=TRUE)
 }
 saveWorkbook(wb,file=outputfile,overwrite=TRUE)
-
-#write.xlsx(write.list, file = outputfile)
-
 
 
 ##########################################
@@ -382,21 +343,7 @@ for (LOSO in c('trial', 'treatment')) {
     covinterest <- dptvars[j]
     print(paste("dependent variable = ", covinterest))
     
-    # pre-allocation
-    # 
-    # mse_mat <- matrix(
-    #   0,
-    #   nrow = length(graphmeasures),
-    #   ncol = 1,
-    #   dimnames = list(graphmeasures, c("MSE"))
-    # )
-    # rrmse_mat <- matrix(
-    #   0,
-    #   nrow = length(graphmeasures),
-    #   ncol = 1,
-    #   dimnames = list(graphmeasures, c("RRMSE"))
-    # )
-    pvalues_mat <- matrix(
+       pvalues_mat <- matrix(
       0,
       nrow = length(graphmeasures),
       ncol = 10,
@@ -422,25 +369,19 @@ for (LOSO in c('trial', 'treatment')) {
       
       print(paste("global graph measure = ", graph))
       
-      
- #     predictions <- c()
-#      actuals <- c()
+
       pvalues <- c()
       samplesize <- c()
       for (trial_id in trials) {
         if (LOSO == 'trial') {
           training_data <- dflong %>%
             filter(trial != trial_id)
-       #   test_data <- dflong %>%
-      #      filter(trial == trial_id)
-          
+      
           
         } else if (LOSO == 'treatment') {
           training_data <- dflong %>%
             filter(treatment != trial_id)
-       #   test_data <- dflong %>%
-      #      filter(treatment == trial_id)
-          
+    
         }
         
         model_graph<-lmer(formula = as.formula(paste0(graph," ~ session * ", covinterest," + ",graph ,"_T0"," + (1|Subj)")),data=training_data)
@@ -453,15 +394,10 @@ for (LOSO in c('trial', 'treatment')) {
         # 5t column because it is lmer
         pvalues <- c(pvalues, as.numeric(summary(model_graph)$coefficients[rows, c(5), drop =
                                                                              FALSE]))  
-        # pvalues <- c(pvalues, as.numeric(summary(model_graph)$coefficients[rows, c(4), drop =
-        #                                                                      FALSE]))
+                                                                           FALSE]))
         samplesize <- c(samplesize, as.numeric(length(training_data)))
         
-       # preds <- predict(model_graph, newdata = test_data)
-      #  predictions <- c(predictions, preds)
-      #  actuals <- c(actuals, test_data[[graph]])
-        
-        
+     
       }
       # save pvalue range
       # Calculate Fisher's combined test statistic
@@ -499,12 +435,6 @@ for (LOSO in c('trial', 'treatment')) {
         harmonic_pvalue
       )
       
-      # mse_mat[i] <- mean((predictions - actuals) ^ 2)
-      # rrmse_mat[i] <- sqrt(mean((predictions - actuals) ^ 2)) / mean(actuals)
-      # 
-      # 
-      # r_squared <- 1 - (sum((actuals - predictions) ^ 2) / sum((actuals -
-      #                                                             mean(actuals)) ^ 2))
       
     }
     results_list[[paste0("df_", j, '_', LOSO)]] <- cbind(graphmeasures,sapply(as.data.frame(cbind(pvalues_mat)), round, 3))

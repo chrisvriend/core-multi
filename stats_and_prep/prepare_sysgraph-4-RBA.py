@@ -3,9 +3,10 @@
 """
 Created on Fri Jul  5 12:15:07 2024
 
-@author: cvriend
+@author: C. Vriend, Amsterdam UMC July 2024
 """
 
+# load packages
 import os
 import pandas as pd
 import numpy as np
